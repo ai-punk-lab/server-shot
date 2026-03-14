@@ -1,0 +1,51 @@
+name: servershot
+description: "Deploy your dev environment to any server with one tap."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # SSH
+  dartssh2: ^2.9.0
+  # State management
+  provider: ^6.1.2
+  # Storage
+  shared_preferences: ^2.3.4
+  # JSON serialization
+  json_annotation: ^4.9.0
+  # UUID
+  uuid: ^4.5.1
+  # Icons
+  flutter_vector_icons: ^2.0.0
+  # Animations
+  animations: ^2.0.11
+  # URL launcher
+  url_launcher: ^6.3.1
+  # Google Fonts
+  google_fonts: ^6.2.1
+  # Terminal emulator
+  xterm: ^4.0.0
+  # Secure storage (Android Keystore)
+  flutter_secure_storage: ^9.2.3
+  # Biometric / PIN auth
+  local_auth: ^2.3.0
+  # File picker for import/export
+  file_picker: ^8.1.6
+  # Share/save files
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  json_serializable: ^6.8.0
+  build_runner: ^2.4.13
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
