@@ -8,6 +8,7 @@ import 'server_setup_screen.dart';
 import 'ssh_terminal_screen.dart';
 import 'settings_screen.dart';
 import 'server_monitor_screen.dart';
+import 'sftp_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -254,6 +255,38 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _actionButton(
+                  icon: Icons.folder_rounded,
+                  label: 'Files',
+                  color: AppTheme.warningColor,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SftpScreen(profile: profile),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _actionButton(
+                  icon: Icons.monitor_heart_rounded,
+                  label: 'Monitor',
+                  color: AppTheme.successColor,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ServerMonitorScreen(profile: profile),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton(
                   icon: Icons.rocket_launch_rounded,
                   label: 'Deploy',
                   color: AppTheme.seedColor,
@@ -263,23 +296,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _actionButton(
-                  icon: Icons.monitor_heart_rounded,
-                  label: 'Monitor',
-                  color: AppTheme.warningColor,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ServerMonitorScreen(profile: profile),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
                   icon: Icons.edit_rounded,
                   label: 'Edit',
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(alpha: 0.4),
                   onTap: () => _navigateToSetup(context, profile: profile),
                 ),
               ),
