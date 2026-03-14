@@ -1,16 +1,16 @@
 # ServerShot
 
-**Deploy your entire dev stack to any server with one tap from your Android device.**
+**Vibe-code from anywhere. No PC needed.**
 
-The future of server provisioning is here. No more SSH-ing in and running 50 commands. No more forgetting to install that one tool. No more copy-pasting API keys. Just open the app, pick your stack, tap Deploy, and go vibe-code on a fresh server.
+Your Android device is now your dev workstation. Spin up a fresh Linux server, deploy your entire stack with one tap — Claude Code, Git, Docker, languages, databases — and start coding through the built-in SSH terminal. From a tablet on the couch, from your phone on the train, from anywhere.
 
-> Built entirely through vibe-coding with Claude Code. From zero to production app in one session.
+> Who needs a laptop when you have a server and ServerShot?
 
 ## What is this?
 
-ServerShot is an Android app that connects to your Linux server via SSH and deploys your complete development environment — tools, languages, configs, credentials — all in one shot.
+ServerShot is an Android app for developers who want to code from their phone or tablet. It connects to any Linux server via SSH, deploys a complete development environment in one tap, and gives you a full terminal to work in — including AI-powered coding with Claude Code.
 
-**Think of it as Terraform, but for your personal dev setup, and it fits in your pocket.**
+**The workflow**: Rent a server → Open ServerShot → Deploy your stack → Open Terminal → Vibe-code with Claude Code → Ship from your pocket.
 
 ## Features
 
@@ -122,9 +122,13 @@ lib/
     └── status_badge.dart          # Install status indicator
 ```
 
+## Why?
+
+Because you shouldn't need a $2000 laptop to write code. A $5/month server + your Android device + Claude Code = a full dev setup that works from anywhere. ServerShot makes the setup part instant.
+
 ## Vibe-Coded
 
-This entire app was built in a single vibe-coding session with [Claude Code](https://claude.ai/claude-code). Every line of Dart, every install script, every UI component — generated through conversation. The future is already here.
+This app was itself vibe-coded on Android with [Claude Code](https://claude.ai/claude-code) — proving the point. The future of mobile development is here.
 
 ## License
 
