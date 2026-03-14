@@ -127,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _settingTile(
             icon: Icons.info_outline_rounded,
             title: 'ServerShot',
-            subtitle: 'v1.0.0 — Vibe-coded with Claude Code',
+            subtitle: 'v1.0.1 — Vibe-coded with Claude Code',
           ),
         ],
       ),
