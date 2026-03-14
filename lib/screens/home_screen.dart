@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/server_profile.dart';
+import '../services/update_service.dart';
 import '../widgets/gradient_card.dart';
 import '../theme/app_theme.dart';
 import 'server_setup_screen.dart';
@@ -10,8 +11,30 @@ import 'settings_screen.dart';
 import 'server_monitor_screen.dart';
 import 'sftp_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  AppUpdate? _availableUpdate;
+  bool _downloading = false;
+  double _downloadProgress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    final update = await UpdateService.checkForUpdate();
+    if (update != null && mounted) {
+      setState(() => _availableUpdate = update);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +102,10 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (_availableUpdate != null) ...[
+                          const SizedBox(height: 16),
+                          _buildUpdateBanner(),
+                        ],
                         const SizedBox(height: 28),
                         if (provider.profiles.isEmpty) ...[
                           _buildEmptyState(context),
@@ -125,6 +152,112 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: AppTheme.seedColor,
         foregroundColor: Colors.white,
         elevation: 4,
+      ),
+    );
+  }
+
+  Widget _buildUpdateBanner() {
+    final update = _availableUpdate!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.seedColor.withValues(alpha: 0.15),
+            AppTheme.accentColor.withValues(alpha: 0.08),
+          ],
+        ),
+        border: Border.all(color: AppTheme.seedColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.system_update_rounded,
+                  color: AppTheme.accentColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Update available: v${update.version}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _availableUpdate = null),
+                child: Icon(Icons.close_rounded,
+                    size: 18, color: Colors.white.withValues(alpha: 0.3)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_downloading) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _downloadProgress,
+                backgroundColor: Colors.white.withValues(alpha: 0.06),
+                color: AppTheme.seedColor,
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${(_downloadProgress * 100).toInt()}% downloading...',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      setState(() {
+                        _downloading = true;
+                        _downloadProgress = 0;
+                      });
+                      await UpdateService.downloadAndInstall(
+                        update.downloadUrl,
+                        onProgress: (p) {
+                          if (mounted) {
+                            setState(() => _downloadProgress = p);
+                          }
+                        },
+                      );
+                      if (mounted) {
+                        setState(() => _downloading = false);
+                      }
+                    },
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Download & Install'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.seedColor,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: UpdateService.openReleasePage,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white.withValues(alpha: 0.5),
+                    side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15)),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 16),
+                  ),
+                  child: const Text('Notes'),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
