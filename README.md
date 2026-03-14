@@ -14,9 +14,9 @@ ServerShot is an Android app for developers who want to code from their phone or
 
 ## Screenshots
 
-| Home | Services | Review | Terminal |
-|------|----------|--------|----------|
-| ![Home](assets/screenshots/1.jpg) | ![Services](assets/screenshots/4.jpg) | ![Review](assets/screenshots/5.jpg) | ![Terminal](assets/screenshots/6.jpg) |
+| Home | Services | Deploy & Credentials | Terminal |
+|------|----------|----------------------|----------|
+| ![Home](assets/screenshots/1.jpg) | ![Services](assets/screenshots/4.jpg) | ![Credentials](assets/screenshots/5.jpg) | ![Terminal](assets/screenshots/6.jpg) |
 
 | Connection | Settings |
 |------------|----------|
