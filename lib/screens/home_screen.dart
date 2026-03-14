@@ -20,8 +20,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   AppUpdate? _availableUpdate;
-  bool _downloading = false;
-  double _downloadProgress = 0;
 
   @override
   void initState() {
@@ -195,68 +193,34 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          if (_downloading) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: _downloadProgress,
-                backgroundColor: Colors.white.withValues(alpha: 0.06),
-                color: AppTheme.seedColor,
-                minHeight: 6,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${(_downloadProgress * 100).toInt()}% downloading...',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
-            ),
-          ] else
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      setState(() {
-                        _downloading = true;
-                        _downloadProgress = 0;
-                      });
-                      await UpdateService.downloadAndInstall(
-                        update.downloadUrl,
-                        onProgress: (p) {
-                          if (mounted) {
-                            setState(() => _downloadProgress = p);
-                          }
-                        },
-                      );
-                      if (mounted) {
-                        setState(() => _downloading = false);
-                      }
-                    },
-                    icon: const Icon(Icons.download_rounded, size: 16),
-                    label: const Text('Download & Install'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.seedColor,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => UpdateService.downloadAndInstall(
+                      update.downloadUrl),
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Download Update'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.seedColor,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: UpdateService.openReleasePage,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.5),
-                    side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.15)),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 16),
-                  ),
-                  child: const Text('Notes'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: UpdateService.openReleasePage,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white.withValues(alpha: 0.5),
+                  side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15)),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 10, horizontal: 16),
                 ),
-              ],
-            ),
+                child: const Text('Notes'),
+              ),
+            ],
+          ),
         ],
       ),
     );

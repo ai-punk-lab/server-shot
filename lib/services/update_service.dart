@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdate {
@@ -77,51 +76,12 @@ class UpdateService {
     }
   }
 
-  /// Download APK and trigger install
-  static Future<void> downloadAndInstall(
-    String url, {
-    void Function(double progress)? onProgress,
-  }) async {
-    try {
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
-
-      final contentLength = response.contentLength;
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/servershot_update.apk');
-
-      final sink = file.openWrite();
-      int received = 0;
-
-      await for (final chunk in response) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (contentLength > 0) {
-          onProgress?.call(received / contentLength);
-        }
-      }
-
-      await sink.close();
-
-      // Open APK with system installer
-      final uri = Uri.parse(file.path);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        // Fallback: open in browser
-        await launchUrl(
-          Uri.parse(url),
-          mode: LaunchMode.externalApplication,
-        );
-      }
-    } catch (e) {
-      // Fallback: open download URL in browser
-      await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
-    }
+  /// Open APK download in browser — Android handles download + install prompt
+  static Future<void> downloadAndInstall(String url) async {
+    await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   /// Open release page in browser as fallback
