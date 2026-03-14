@@ -39,27 +39,47 @@ Select the tools you need, enter your credentials, hit Deploy. Watch real-time t
 | Networking | Tailscale, Caddy |
 | Databases | PostgreSQL, Redis |
 
+### Cross-Platform
+Scripts auto-detect your distro and use the right package manager. Supports Ubuntu, Debian, Fedora, CentOS, RHEL, Arch, Alpine, openSUSE.
+
 ### Smart Credentials
 - **GitHub**: Enter your PAT — auto-authenticates `gh`, generates SSH key, uploads it to your GitHub profile. No manual setup.
 - **Claude Code**: Paste your OAuth token from `claude setup-token` — works with Max/Pro subscription. No API key billing.
 - **Tailscale**: Auth key — auto-joins your tailnet.
 - **PostgreSQL**: Set the postgres password during install.
+- **Global Presets**: Save credential sets and reuse across servers. No re-entering the same API keys.
+
+### SFTP File Manager
+Built-in file browser for your server:
+- Navigate directories, upload files from your device, download to your device
+- Create folders, delete files/dirs, progress bar for transfers
+- File type icons (code, images, archives, etc.)
+
+### Built-in SSH Terminal
+Full terminal emulator powered by [xterm.dart](https://github.com/TerminalStudio/xterm.dart):
+- Real VT100/ANSI rendering — vim, nano, htop, Claude Code all work
+- Native clipboard paste (Ctrl+V, Ctrl+Shift+V, Paste button) via [super_clipboard](https://pub.dev/packages/super_clipboard)
+- Virtual key bar: Ctrl, Alt, Esc, Tab, arrows, Home/End, PgUp/PgDn, common Ctrl combos
+- USB & Bluetooth keyboard support
+- Auto-reconnect with exponential backoff on disconnect
+- Resumes connection when app returns to foreground
+- Keep-alive every 10 seconds
+- User picker — choose which user to connect as
 
 ### User Management
 - **Create Deploy User**: Connect as root, create a non-root user with sudo (passwordless or with password), deploy everything under that user.
 - **Custom SSH Users**: Add as many users as you want for quick terminal access.
+- **SSH Key Auth**: Paste your private key (PEM) for key-based authentication.
 - **Save without deploying**: Just add a server and its users, use Terminal whenever you need.
 
-### Built-in SSH Terminal
-Full terminal emulator powered by [xterm.dart](https://github.com/TerminalStudio/xterm.dart):
-- Real VT100/ANSI rendering — vim, nano, htop all work
-- Virtual key bar: Ctrl, Alt, Esc, Tab, arrows, Home/End, PgUp/PgDn, common Ctrl combos
-- USB keyboard support
-- Keep-alive (no random disconnects)
-- User picker — choose which user to connect as
+### Server Monitoring
+Real-time CPU, RAM, and Disk usage with auto-refresh. Quick health check from the home screen.
 
-### Server Profiles
-Save server configs with all credentials and users. Re-deploy or terminal in anytime.
+### Security
+- **Encrypted Storage**: All passwords, tokens, and keys stored in Android Keystore via [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage).
+- **PIN Lock**: 4-digit PIN with custom numpad — works on all devices.
+- **Biometric Lock**: Fingerprint/face unlock where supported.
+- **Export/Import**: Backup and restore all profiles and presets to JSON.
 
 ### Presets
 One-tap presets for common stacks:
@@ -74,8 +94,8 @@ Download the latest APK from [Releases](../../releases) and install on your Andr
 
 ### Build from source
 ```bash
-git clone https://github.com/your-username/android-shot.git
-cd android-shot
+git clone https://github.com/ai-punk-lab/server-shot.git
+cd server-shot
 flutter pub get
 flutter build apk --release
 ```
@@ -91,34 +111,43 @@ GitHub Actions will build the APK and create a release automatically.
 
 ## Tech Stack
 
-- **Flutter** + **Dart** — cross-platform UI
-- **dartssh2** — SSH client in pure Dart
+- **Flutter** + **Dart**
+- **dartssh2** — SSH & SFTP client in pure Dart
 - **xterm.dart** — terminal emulator
-- **Material 3** — dark theme, premium feel
+- **super_clipboard** — native clipboard access
+- **flutter_secure_storage** — Android Keystore encryption
+- **local_auth** — biometric authentication
+- **Material 3** — dark theme
 - **Provider** — state management
-- **SharedPreferences** — local storage
 
 ## Architecture
 
 ```
 lib/
-├── main.dart                      # App entry + splash screen
+├── main.dart                      # App entry, splash, onboarding, app lock
 ├── models/
 │   ├── server_profile.dart        # Server config model
-│   └── service_definition.dart    # Service/tool definition model
+│   ├── service_definition.dart    # Service/tool definition model
+│   └── credential_preset.dart     # Global credential preset model
 ├── providers/
 │   └── app_provider.dart          # State management
 ├── screens/
 │   ├── home_screen.dart           # Server list + actions
-│   ├── server_setup_screen.dart   # 3-step wizard (Connection → Services → Review)
-│   ├── credentials_screen.dart    # API keys & tokens
+│   ├── server_setup_screen.dart   # 3-step wizard (Connection → Services → Deploy)
+│   ├── credentials_screen.dart    # API keys, tokens, preset management
 │   ├── deploy_screen.dart         # Live deployment with terminal output
-│   └── ssh_terminal_screen.dart   # Full SSH terminal
+│   ├── ssh_terminal_screen.dart   # Full SSH terminal with auto-reconnect
+│   ├── sftp_screen.dart           # SFTP file manager
+│   ├── server_monitor_screen.dart # CPU/RAM/Disk monitoring
+│   ├── settings_screen.dart       # App lock, export/import
+│   ├── onboarding_screen.dart     # First-launch intro
+│   └── pin_screen.dart            # PIN lock screen
 ├── services/
 │   ├── ssh_service.dart           # SSH connection & command execution
 │   ├── deployment_service.dart    # Deployment orchestration
-│   ├── service_registry.dart      # All 15 service definitions + install scripts
-│   └── storage_service.dart       # Profile persistence
+│   ├── service_registry.dart      # 15 service definitions + cross-platform install scripts
+│   ├── storage_service.dart       # Encrypted storage (Android Keystore)
+│   └── script_helpers.dart        # OS/package manager detection preamble
 ├── theme/
 │   └── app_theme.dart             # Material 3 dark theme
 └── widgets/
@@ -134,7 +163,7 @@ Because you shouldn't need a $2000 laptop to write code. A $5/month server + you
 
 ## Vibe-Coded
 
-This app was itself vibe-coded on Android with [Claude Code](https://claude.ai/claude-code) — proving the point. The future of mobile development is here.
+This app was itself vibe-coded with [Claude Code](https://claude.ai/claude-code) — proving the point. The future of mobile development is here.
 
 ## License
 

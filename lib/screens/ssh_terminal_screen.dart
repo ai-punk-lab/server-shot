@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:xterm/xterm.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import '../models/server_profile.dart';
 import '../theme/app_theme.dart';
 
@@ -16,7 +17,8 @@ class SSHTerminalScreen extends StatefulWidget {
   State<SSHTerminalScreen> createState() => _SSHTerminalScreenState();
 }
 
-class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
+class _SSHTerminalScreenState extends State<SSHTerminalScreen>
+    with WidgetsBindingObserver {
   late final Terminal _terminal;
   final _terminalKey = GlobalKey();
   SSHClient? _client;
@@ -25,6 +27,9 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
   bool _connecting = true;
   String _title = '';
   Timer? _keepAliveTimer;
+  bool _autoReconnect = true;
+  int _reconnectAttempts = 0;
+  static const _maxReconnectAttempts = 5;
 
   // Virtual keyboard modifier states
   bool _ctrlActive = false;
@@ -33,13 +38,23 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _title = '${widget.profile.username}@${widget.profile.host}';
     _terminal = Terminal(maxLines: 10000);
 
-    // Wait for first frame so terminal view has real dimensions
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initSSH();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_connected && !_connecting) {
+      // App came back to foreground — try reconnect
+      _terminal.write('\r\n\x1B[33m--- App resumed, reconnecting... ---\x1B[0m\r\n');
+      _reconnectAttempts = 0;
+      _doReconnect();
+    }
   }
 
   Future<void> _initSSH() async {
@@ -79,9 +94,9 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
       setState(() {
         _connected = true;
         _connecting = false;
+        _reconnectAttempts = 0;
       });
 
-      // Sync PTY size with actual terminal view dimensions after rendering
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_session != null && _terminal.viewWidth > 0) {
           _session!.resizeTerminal(
@@ -100,7 +115,11 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
       };
 
       _terminal.onOutput = (data) {
-        _session?.stdin.add(utf8.encode(data));
+        try {
+          _session?.stdin.add(utf8.encode(data));
+        } catch (_) {
+          _onDisconnect();
+        }
       };
 
       _session!.stdout
@@ -111,7 +130,6 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
         onDone: _onDisconnect,
         onError: (e) {
           _onDisconnect();
-          _terminal.write('\r\n\x1B[31m--- Error: $e ---\x1B[0m\r\n');
         },
       );
 
@@ -120,14 +138,15 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
           .transform(const Utf8Decoder())
           .listen(_terminal.write);
 
-      // Keep-alive every 30s — send empty data to detect broken connection
-      _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-        if (_connected && _client != null) {
-          try {
-            await _client!.execute('echo');
-          } catch (_) {
-            _onDisconnect();
-          }
+      // Keep-alive: lightweight ping every 10s
+      _keepAliveTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+        if (!_connected || _client == null) return;
+        try {
+          await _client!.execute('echo ok').timeout(
+            const Duration(seconds: 5),
+          );
+        } catch (_) {
+          _onDisconnect();
         }
       });
     } catch (e) {
@@ -136,24 +155,57 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
         _connected = false;
       });
       _terminal.write('\x1B[31mConnection failed: $e\x1B[0m\r\n');
-      _terminal.write('\x1B[90mTap Reconnect to try again.\x1B[0m\r\n');
+
+      // Auto-reconnect
+      if (_autoReconnect && _reconnectAttempts < _maxReconnectAttempts) {
+        final delay = _reconnectDelay();
+        _terminal.write('\x1B[90mRetrying in ${delay.inSeconds}s (${_reconnectAttempts + 1}/$_maxReconnectAttempts)...\x1B[0m\r\n');
+        await Future.delayed(delay);
+        if (mounted && !_connected) {
+          _reconnectAttempts++;
+          _initSSH();
+        }
+      } else if (_reconnectAttempts >= _maxReconnectAttempts) {
+        _terminal.write('\x1B[90mMax reconnect attempts reached. Tap Reconnect to try manually.\x1B[0m\r\n');
+      }
     }
+  }
+
+  Duration _reconnectDelay() {
+    // Exponential backoff: 2s, 4s, 8s, 16s, 30s
+    final seconds = [2, 4, 8, 16, 30];
+    final idx = _reconnectAttempts.clamp(0, seconds.length - 1);
+    return Duration(seconds: seconds[idx]);
   }
 
   void _onDisconnect() {
     _keepAliveTimer?.cancel();
-    if (mounted) {
-      setState(() => _connected = false);
+    if (!mounted) return;
+
+    final wasConnected = _connected;
+    setState(() => _connected = false);
+
+    if (wasConnected) {
       _terminal.write('\r\n\x1B[33m--- Disconnected ---\x1B[0m\r\n');
+
+      // Auto-reconnect if was previously connected
+      if (_autoReconnect && _reconnectAttempts < _maxReconnectAttempts) {
+        final delay = _reconnectDelay();
+        _terminal.write('\x1B[90mReconnecting in ${delay.inSeconds}s...\x1B[0m\r\n');
+        Future.delayed(delay, () {
+          if (mounted && !_connected) {
+            _reconnectAttempts++;
+            _doReconnect();
+          }
+        });
+      }
     }
   }
 
-  Future<void> _reconnect() async {
+  Future<void> _doReconnect() async {
     _keepAliveTimer?.cancel();
-    _session?.close();
-    _client?.close();
-    _terminal.buffer.clear();
-    _terminal.buffer.setCursor(0, 0);
+    try { _session?.close(); } catch (_) {}
+    try { _client?.close(); } catch (_) {}
     setState(() {
       _connecting = true;
       _connected = false;
@@ -161,12 +213,50 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
     await _initSSH();
   }
 
+  Future<void> _manualReconnect() async {
+    _reconnectAttempts = 0;
+    _terminal.buffer.clear();
+    _terminal.buffer.setCursor(0, 0);
+    await _doReconnect();
+  }
+
   void _sendCtrl(String char) {
     if (_session == null || !_connected) return;
-    final code = char.codeUnitAt(0) - 64; // Ctrl+A = 1, Ctrl+C = 3, etc.
+    final code = char.codeUnitAt(0) - 64;
     _session!.stdin.add(Uint8List.fromList([code]));
     HapticFeedback.lightImpact();
     setState(() => _ctrlActive = false);
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    if (_session == null || !_connected) return;
+
+    try {
+      // Use super_clipboard for native access
+      final clipboard = SystemClipboard.instance;
+      if (clipboard == null) return;
+
+      final reader = await clipboard.read();
+
+      // Try plain text first
+      if (reader.canProvide(Formats.plainText)) {
+        final text = await reader.readValue(Formats.plainText);
+        if (text != null && text.isNotEmpty) {
+          _session!.stdin.add(utf8.encode(text));
+          HapticFeedback.lightImpact();
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // Fallback to Flutter's built-in clipboard
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data?.text != null && data!.text!.isNotEmpty) {
+        _session!.stdin.add(utf8.encode(data.text!));
+        HapticFeedback.lightImpact();
+      }
+    } catch (_) {}
   }
 
   void _sendSpecialKey(List<int> bytes) {
@@ -177,7 +267,9 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _keepAliveTimer?.cancel();
+    _autoReconnect = false;
     _session?.close();
     _client?.close();
     super.dispose();
@@ -190,9 +282,7 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header bar
             _buildHeader(),
-            // Terminal
             Expanded(
               child: TerminalView(
                 _terminal,
@@ -200,10 +290,17 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
                 hardwareKeyboardOnly: false,
                 keyboardType: TextInputType.text,
                 onKeyEvent: (node, event) {
-                  // Ensure Enter from USB keyboard works
-                  if (event is KeyDownEvent &&
-                      (event.logicalKey == LogicalKeyboardKey.enter ||
-                       event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  final ctrl = HardwareKeyboard.instance.isControlPressed;
+                  // Ctrl+V or Ctrl+Shift+V — paste
+                  if (ctrl &&
+                      event.logicalKey == LogicalKeyboardKey.keyV) {
+                    _pasteFromClipboard();
+                    return KeyEventResult.handled;
+                  }
+                  // Enter
+                  if (event.logicalKey == LogicalKeyboardKey.enter ||
+                      event.logicalKey == LogicalKeyboardKey.numpadEnter) {
                     _terminal.keyInput(TerminalKey.enter);
                     return KeyEventResult.handled;
                   }
@@ -237,7 +334,6 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
                 autofocus: true,
               ),
             ),
-            // Virtual key bar
             if (_connected) _buildVirtualKeyBar(),
           ],
         ),
@@ -299,7 +395,7 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
             IconButton(
               icon: Icon(Icons.refresh_rounded,
                   size: 20, color: AppTheme.seedColor),
-              onPressed: _reconnect,
+              onPressed: _manualReconnect,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
@@ -337,6 +433,7 @@ class _SSHTerminalScreenState extends State<SSHTerminalScreen> {
               HapticFeedback.lightImpact();
             }),
             const SizedBox(width: 10),
+            _vkey('Paste', _pasteFromClipboard),
             _vkey('Esc', () => _sendSpecialKey([27])),
             _vkey('Tab', () => _sendSpecialKey([9])),
             _vkey('↑', () => _sendSpecialKey([27, 91, 65])),

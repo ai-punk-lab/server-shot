@@ -97,5 +97,41 @@ void main() {
       expect(script, contains('rbenv'));
       expect(script, contains('ruby-build'));
     });
+
+    test('scripts use cross-platform package manager variables', () {
+      // These services should use $PKG_INSTALL or pkg_install
+      final crossPlatformServices = ['git', 'python', 'zsh', 'tmux', 'redis'];
+      for (final id in crossPlatformServices) {
+        final service = ServiceRegistry.getById(id)!;
+        final script = service.installScript({});
+        final usesPkgVar = script.contains('\$PKG_INSTALL') ||
+            script.contains('pkg_install') ||
+            script.contains('\$PKG_UPDATE');
+        expect(usesPkgVar, true, reason: '$id should use cross-platform pkg vars');
+      }
+    });
+
+    test('github_cli handles different package managers', () {
+      final gh = ServiceRegistry.getById('github_cli')!;
+      final script = gh.installScript({});
+      expect(script, contains('apt)'));
+      expect(script, contains('dnf|yum)'));
+      expect(script, contains('pacman)'));
+    });
+
+    test('caddy handles different package managers', () {
+      final caddy = ServiceRegistry.getById('caddy')!;
+      final script = caddy.installScript({});
+      expect(script, contains('apt)'));
+      expect(script, contains('dnf|yum)'));
+      expect(script, contains('pacman)'));
+    });
+
+    test('postgresql handles RHEL init', () {
+      final pg = ServiceRegistry.getById('postgresql')!;
+      final script = pg.installScript({'pg_password': 'test123'});
+      expect(script, contains('postgresql-setup'));
+      expect(script, contains('test123'));
+    });
   });
 }
