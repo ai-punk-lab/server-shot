@@ -12,6 +12,16 @@ ServerShot is an Android app for developers who want to code from their phone or
 
 **The workflow**: Rent a server → Open ServerShot → Deploy your stack → Open Terminal → Vibe-code with Claude Code → Ship from your pocket.
 
+## Screenshots
+
+| Home | Services | Review | Terminal |
+|------|----------|--------|----------|
+| ![Home](assets/screenshots/1.jpg) | ![Services](assets/screenshots/4.jpg) | ![Review](assets/screenshots/5.jpg) | ![Terminal](assets/screenshots/6.jpg) |
+
+| Connection | Settings |
+|------------|----------|
+| ![Connection](assets/screenshots/3.jpg) | ![Settings](assets/screenshots/2.jpg) |
+
 ## Features
 
 ### One-Tap Deployment
