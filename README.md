@@ -67,10 +67,6 @@ One-tap presets for common stacks:
 - **AI Dev** — Git, GitHub CLI, Node.js, Python, Claude Code, Neovim, Zsh, tmux, Docker
 - **Minimal** — Git, Docker, Node.js, Zsh
 
-## Screenshots
-
-*Coming soon*
-
 ## Getting Started
 
 ### Install
